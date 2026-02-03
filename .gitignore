@@ -1,0 +1,15 @@
+# Binary
+redis-fs-cli
+redis-fs-cli-*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Go
+vendor/
