@@ -1,6 +1,6 @@
-# Binary
-redis-fs-cli
-redis-fs-cli-*
+# Binary (at root only)
+/redis-fs-cli
+/redis-fs-cli-*
 
 # IDE
 .idea/
