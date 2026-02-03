@@ -12,7 +12,9 @@ import (
 	"github.com/rowantrollope/redis-fs-cli/internal/cmd"
 	"github.com/rowantrollope/redis-fs-cli/internal/config"
 	"github.com/rowantrollope/redis-fs-cli/internal/fs"
+	"github.com/rowantrollope/redis-fs-cli/internal/embedding"
 	"github.com/rowantrollope/redis-fs-cli/internal/output"
+	"github.com/rowantrollope/redis-fs-cli/internal/search"
 	flag "github.com/spf13/pflag"
 )
 
@@ -63,8 +65,26 @@ func run() int {
 	}
 	defer rdb.Close()
 
+	// Detect search capability
+	cfg.SearchAvailable = search.DetectSearch(ctx, rdb)
+
 	// Create FS client
 	fsClient := fs.NewClient(rdb, cfg.Volume)
+
+	// Wire search indexer if available
+	if cfg.SearchAvailable {
+		indexer := search.NewIndexer(rdb, cfg.Volume)
+		if cfg.EmbeddingAPIKey != "" {
+			embCfg := &embedding.Config{
+				APIKey:  cfg.EmbeddingAPIKey,
+				BaseURL: cfg.EmbeddingAPIURL,
+				Model:   cfg.EmbeddingModel,
+				Dim:     cfg.EmbeddingDim,
+			}
+			indexer.SetEmbedder(embedding.NewClient(embCfg), cfg.EmbeddingDim)
+		}
+		fsClient.SetObserver(indexer)
+	}
 
 	// Auto-init volume root
 	if err := fsClient.Init(ctx); err != nil {

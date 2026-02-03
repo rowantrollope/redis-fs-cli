@@ -6,29 +6,32 @@ import (
 )
 
 var commandHelp = map[string]string{
-	"ls":    "ls [path] [-l] [-a]       List directory contents",
-	"pwd":   "pwd                       Print working directory",
-	"cd":    "cd [path]                 Change directory (cd - for previous)",
-	"mkdir": "mkdir [-p] path           Create directory (-p for parents)",
-	"rmdir": "rmdir path                Remove empty directory",
-	"touch": "touch path                Create file or update timestamps",
-	"cat":   "cat path                  Display file contents",
-	"echo":  "echo \"text\" > path        Write to file (> or >> for append)",
-	"rm":    "rm [-r] [-f] path         Remove file or directory",
-	"cp":    "cp [-r] src dst           Copy file or directory",
-	"mv":    "mv src dst                Move/rename file or directory",
-	"stat":  "stat path                 Display file metadata",
-	"find":  "find [path] [-name pat] [-type f|d|l]  Find files",
-	"grep":  "grep [-r] [-i] [-n] pattern path       Search file contents",
-	"ln":    "ln -s target link         Create symbolic link",
-	"chmod": "chmod mode path           Change file mode",
-	"chown": "chown uid:gid path        Change file owner",
-	"tree":  "tree [path] [-L depth]    Display directory tree",
-	"vol":   "vol list|switch|create|info  Volume management",
-	"init":  "init                      Initialize volume root",
-	"help":  "help [command]            Show this help",
-	"clear": "clear                     Clear the terminal",
-	"exit":  "exit / quit               Exit the REPL",
+	"ls":            "ls [path] [-l] [-a]       List directory contents",
+	"pwd":           "pwd                       Print working directory",
+	"cd":            "cd [path]                 Change directory (cd - for previous)",
+	"mkdir":         "mkdir [-p] path           Create directory (-p for parents)",
+	"rmdir":         "rmdir path                Remove empty directory",
+	"touch":         "touch path                Create file or update timestamps",
+	"cat":           "cat path                  Display file contents",
+	"echo":          "echo \"text\" > path        Write to file (> or >> for append)",
+	"rm":            "rm [-r] [-f] path         Remove file or directory",
+	"cp":            "cp [-r] src dst           Copy file or directory",
+	"mv":            "mv src dst                Move/rename file or directory",
+	"stat":          "stat path                 Display file metadata",
+	"find":          "find [path] [-name pat] [-type f|d|l]  Find files",
+	"grep":          "grep [-r] [-i] [-n] [--no-index] pattern path  Search file contents",
+	"ln":            "ln -s target link         Create symbolic link",
+	"chmod":         "chmod mode path           Change file mode",
+	"chown":         "chown uid:gid path        Change file owner",
+	"tree":          "tree [path] [-L depth]    Display directory tree",
+	"vol":           "vol list|switch|create|info  Volume management",
+	"init":          "init                      Initialize volume root",
+	"index":         "index status|create|drop|info  Manage search index",
+	"reindex":       "reindex [path] [--drop] [--status]  Build/rebuild search index",
+	"vector-search": "vector-search [--top N] [--filter text] \"query\" [path]  Hybrid vector search",
+	"help":          "help [command]            Show this help",
+	"clear":         "clear                     Clear the terminal",
+	"exit":          "exit / quit               Exit the REPL",
 }
 
 func (r *Router) handleHelp(ctx context.Context, args []string) error {
@@ -53,6 +56,11 @@ func (r *Router) handleHelp(ctx context.Context, args []string) error {
 	fmt.Fprintln(r.Formatter.Writer, "Volume commands:")
 	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["vol"])
 	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["init"])
+	fmt.Fprintln(r.Formatter.Writer, "")
+	fmt.Fprintln(r.Formatter.Writer, "Search commands:")
+	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["index"])
+	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["reindex"])
+	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["vector-search"])
 	fmt.Fprintln(r.Formatter.Writer, "")
 	fmt.Fprintln(r.Formatter.Writer, "Other:")
 	fmt.Fprintf(r.Formatter.Writer, "  %s\n", commandHelp["help"])

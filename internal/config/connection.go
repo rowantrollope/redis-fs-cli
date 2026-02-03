@@ -31,6 +31,13 @@ type Config struct {
 
 	HistoryFile string
 
+	// Search / indexing
+	SearchAvailable bool   // set at startup, not a flag
+	EmbeddingAPIKey string
+	EmbeddingAPIURL string
+	EmbeddingModel  string
+	EmbeddingDim    int
+
 	// Remaining args after flag parsing (single-command mode)
 	Args []string
 }
@@ -53,13 +60,33 @@ func DefaultConfig() *Config {
 		password = env
 	}
 
+	embeddingKey := os.Getenv("EMBEDDING_API_KEY")
+	embeddingURL := os.Getenv("EMBEDDING_API_URL")
+	if embeddingURL == "" {
+		embeddingURL = "https://api.openai.com/v1"
+	}
+	embeddingModel := os.Getenv("EMBEDDING_MODEL")
+	if embeddingModel == "" {
+		embeddingModel = "text-embedding-3-small"
+	}
+	embeddingDim := 1536
+	if env := os.Getenv("EMBEDDING_DIM"); env != "" {
+		if d, err := strconv.Atoi(env); err == nil && d > 0 {
+			embeddingDim = d
+		}
+	}
+
 	return &Config{
-		Host:        "127.0.0.1",
-		Port:        6379,
-		DB:          0,
-		Password:    password,
-		Volume:      volume,
-		HistoryFile: histFile,
+		Host:            "127.0.0.1",
+		Port:            6379,
+		DB:              0,
+		Password:        password,
+		Volume:          volume,
+		HistoryFile:     histFile,
+		EmbeddingAPIKey: embeddingKey,
+		EmbeddingAPIURL: embeddingURL,
+		EmbeddingModel:  embeddingModel,
+		EmbeddingDim:    embeddingDim,
 	}
 }
 
@@ -81,6 +108,11 @@ func (c *Config) RegisterFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.NoColor, "no-color", false, "Disable colors")
 	fs.BoolVar(&c.Color, "color", false, "Force colors")
 	fs.StringVar(&c.Volume, "volume", c.Volume, "Filesystem volume name")
+
+	fs.StringVar(&c.EmbeddingAPIKey, "embedding-api-key", c.EmbeddingAPIKey, "API key for embedding model")
+	fs.StringVar(&c.EmbeddingAPIURL, "embedding-api-url", c.EmbeddingAPIURL, "Base URL for embedding API")
+	fs.StringVar(&c.EmbeddingModel, "embedding-model", c.EmbeddingModel, "Embedding model name")
+	fs.IntVar(&c.EmbeddingDim, "embedding-dim", c.EmbeddingDim, "Embedding vector dimension")
 }
 
 // RedisOptions builds a go-redis Options from the config.

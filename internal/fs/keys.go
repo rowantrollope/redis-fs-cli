@@ -36,6 +36,23 @@ func (k *KeyGen) Xattr(path string) string {
 	return fmt.Sprintf("fs:%s:xattr:%s", k.Volume, path)
 }
 
+// Idx returns the index key for a path.
+// e.g., fs:main:idx:/configs/prod/app.conf
+func (k *KeyGen) Idx(path string) string {
+	return fmt.Sprintf("fs:%s:idx:%s", k.Volume, path)
+}
+
+// IdxPrefix returns the prefix for all index keys in this volume.
+// e.g., fs:main:idx:
+func (k *KeyGen) IdxPrefix() string {
+	return fmt.Sprintf("fs:%s:idx:", k.Volume)
+}
+
+// IdxSchemaVersion returns the key storing the index schema version.
+func (k *KeyGen) IdxSchemaVersion() string {
+	return fmt.Sprintf("fs:%s:idx:__schema_ver__", k.Volume)
+}
+
 // VolumeRootPattern returns a SCAN pattern to discover all volumes.
 // Matches fs:*:meta:/ to find volume root metadata keys.
 func VolumeRootPattern() string {

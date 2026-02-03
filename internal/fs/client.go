@@ -14,9 +14,10 @@ const maxSymlinkDepth = 40
 
 // Client provides filesystem operations backed by Redis.
 type Client struct {
-	rdb    *redis.Client
-	keys   *KeyGen
-	Volume string
+	rdb      *redis.Client
+	keys     *KeyGen
+	Volume   string
+	observer FileObserver
 }
 
 // NewClient creates a new filesystem client.
@@ -32,6 +33,16 @@ func NewClient(rdb *redis.Client, volume string) *Client {
 func (c *Client) SetVolume(volume string) {
 	c.Volume = volume
 	c.keys = NewKeyGen(volume)
+}
+
+// SetObserver registers a FileObserver for mutation notifications.
+func (c *Client) SetObserver(obs FileObserver) {
+	c.observer = obs
+}
+
+// Keys returns the key generator (for use by search indexing).
+func (c *Client) Keys() *KeyGen {
+	return c.keys
 }
 
 // Redis returns the underlying Redis client.
@@ -363,7 +374,11 @@ func (c *Client) WriteFile(ctx context.Context, path, content string) error {
 		pipe.Set(ctx, c.keys.Data(path), content, 0)
 		pipe.HSet(ctx, c.keys.Meta(path), "size", size, "mtime", now)
 		_, err = pipe.Exec(ctx)
-		return err
+		if err != nil {
+			return err
+		}
+		c.notifyWrite(ctx, path, content)
+		return nil
 	}
 
 	// New file
@@ -387,6 +402,7 @@ func (c *Client) WriteFile(ctx context.Context, path, content string) error {
 	if err != nil {
 		return fmt.Errorf("echo: %w", err)
 	}
+	c.notifyWrite(ctx, path, content)
 	return nil
 }
 
@@ -425,7 +441,18 @@ func (c *Client) AppendFile(ctx context.Context, path, content string) error {
 
 	newSize := strconv.FormatInt(strlenCmd.Val(), 10)
 	_, err = c.rdb.HSet(ctx, c.keys.Meta(path), "size", newSize, "mtime", now).Result()
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Re-index with full content
+	if c.observer != nil {
+		fullContent, readErr := c.rdb.Get(ctx, c.keys.Data(path)).Result()
+		if readErr == nil {
+			c.notifyWrite(ctx, path, fullContent)
+		}
+	}
+	return nil
 }
 
 // --- Remove ---
@@ -458,6 +485,7 @@ func (c *Client) Remove(ctx context.Context, path string) error {
 	if err != nil {
 		return fmt.Errorf("rm: %w", err)
 	}
+	c.notifyRemove(ctx, path)
 	return nil
 }
 
@@ -562,6 +590,7 @@ func (c *Client) CopyFile(ctx context.Context, src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("cp: %w", err)
 	}
+	c.notifyWrite(ctx, dst, data)
 	return nil
 }
 
@@ -667,6 +696,7 @@ func (c *Client) moveFile(ctx context.Context, src, dst string) error {
 
 	// Best-effort rename xattr
 	c.rdb.Rename(ctx, c.keys.Xattr(src), c.keys.Xattr(dst))
+	c.notifyMove(ctx, src, dst)
 	return nil
 }
 
@@ -999,4 +1029,24 @@ type GrepResult struct {
 	Path    string
 	Line    int
 	Content string
+}
+
+// --- Observer helpers ---
+
+func (c *Client) notifyWrite(ctx context.Context, path, content string) {
+	if c.observer != nil {
+		c.observer.OnFileWrite(ctx, path, content)
+	}
+}
+
+func (c *Client) notifyRemove(ctx context.Context, path string) {
+	if c.observer != nil {
+		c.observer.OnFileRemove(ctx, path)
+	}
+}
+
+func (c *Client) notifyMove(ctx context.Context, oldPath, newPath string) {
+	if c.observer != nil {
+		c.observer.OnFileMove(ctx, oldPath, newPath)
+	}
 }

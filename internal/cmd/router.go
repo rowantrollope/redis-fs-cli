@@ -68,6 +68,9 @@ func (r *Router) registerHandlers() {
 	r.handlers["init"] = r.handleInit
 	r.handlers["help"] = r.handleHelp
 	r.handlers["clear"] = r.handleClear
+	r.handlers["index"] = r.handleIndex
+	r.handlers["reindex"] = r.handleReindex
+	r.handlers["vector-search"] = r.handleVectorSearch
 }
 
 // Execute runs a parsed command line.
